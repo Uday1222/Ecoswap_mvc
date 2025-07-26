@@ -87,6 +87,11 @@ namespace Ecoswap_mvc.Repository
             }
         }
 
+        public async Task<List<User>> GetUsersByIdsAsync(IEnumerable<int> ids)
+        {
+            return await _context.Users.Where(u => ids.Contains(u.Id)).ToListAsync();
+        }
+
         private string HashPassword(string password)
         {
             using (var sha256 = SHA256.Create())

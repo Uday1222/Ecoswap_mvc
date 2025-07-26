@@ -13,11 +13,13 @@ namespace EcoSwap.Controllers
     {
         private readonly IItemRepository _itemRepository;
         private readonly IChatMessageRepository _chatMessageRepository;
+        private readonly IUserRepository _userRepository;
 
-        public ItemController(IItemRepository itemRepository, IChatMessageRepository chatMessageRepository)
+        public ItemController(IItemRepository itemRepository, IChatMessageRepository chatMessageRepository, IUserRepository userRepository)
         {
             _itemRepository = itemRepository;
             _chatMessageRepository = chatMessageRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<IActionResult> Index()
@@ -91,8 +93,9 @@ namespace EcoSwap.Controllers
             if (item == null || !item.UserId.HasValue)
                 return Json(new List<object>());
             var userIds = await _chatMessageRepository.GetUserIdsWhoMessagedAboutItemAsync(itemId, item.UserId.Value);
-            // For demo, just return user IDs. In a real app, you would join with the user table to get names.
-            return Json(userIds);
+            var users = await _userRepository.GetUsersByIdsAsync(userIds);
+            var result = users.Select(u => new { userId = u.Id, username = u.FullName ?? u.Username }).ToList();
+            return Json(result);
         }
     }
 }

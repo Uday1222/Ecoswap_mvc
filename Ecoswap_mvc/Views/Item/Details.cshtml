@@ -125,8 +125,8 @@
                         } else {
                             console.log('Found users:', users);
                             noUsersMsg.style.display = 'none';
-                            users.forEach(uid => {
-                                select.innerHTML += `<option value="${uid}">User #${uid}</option>`;
+                            users.forEach(user => {
+                                select.innerHTML += `<option value="${user.userId}">${user.username}</option>`;
                             });
                         }
                     })
@@ -140,8 +140,35 @@
                 console.log('Loading conversation with user:', userId);
                 
                 // For owners, use the new JoinOwnerChat method
-                if (isItemOwner === 'true') {
+                if (isItemOwner === true) {
                     if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                        // Remove previous handler to avoid duplicates and cross-user message leakage
+                        connection.off("ReceiveMessage");
+                        connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                            var msg = document.createElement('div');
+                            var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                            var displayName = sender;
+                            if (isCurrentUser) {
+                                msg.className = 'd-flex justify-content-end mb-2';
+                                msg.innerHTML = `
+                                    <div class="p-2 border rounded shadow-sm sender-message">
+                                        <div class="small">${message}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
+                                    </div>
+                                `;
+                            } else {
+                                msg.className = 'd-flex justify-content-start mb-2';
+                                msg.innerHTML = `
+                                    <div class="p-2 border rounded shadow-sm receiver-message">
+                                        <div class="small mb-1">${displayName}</div>
+                                        <div>${message}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
+                                    </div>
+                                `;
+                            }
+                            document.getElementById('chatMessages').appendChild(msg);
+                            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                        });
                         connection.invoke("JoinOwnerChat", itemId, currentUserId, userId);
                         enableChatInput(true);
                     } else {
@@ -193,7 +220,6 @@
             }
 
             if (isItemOwner === true) {
-                debugger;
                 // Owner: Initialize SignalR connection for receiving messages
                 connection = new signalR.HubConnectionBuilder()
                     .withUrl("/chathub")
@@ -236,9 +262,8 @@
                 });
                 
                 connection.start().then(function () {
-                    connection.invoke("JoinItemChat", itemId, currentUserId);
+                    // Do not join any chat or set up ReceiveMessage handler globally
                 });
-                
                 loadChatUsers();
                 document.getElementById('chatUserSelect').addEventListener('change', function () {
                     selectedUserId = parseInt(this.value);

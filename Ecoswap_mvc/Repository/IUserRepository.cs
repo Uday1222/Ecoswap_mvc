@@ -1,5 +1,7 @@
 using Ecoswap_mvc.Models;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Ecoswap_mvc.Repository
 {
@@ -15,5 +17,6 @@ namespace Ecoswap_mvc.Repository
         Task<bool> UsernameExistsAsync(string username);
         Task<bool> EmailExistsAsync(string email);
         Task UpdateLastLoginAsync(int userId);
+        Task<List<User>> GetUsersByIdsAsync(IEnumerable<int> ids);
     }
 } 
