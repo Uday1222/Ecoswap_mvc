@@ -105,31 +105,105 @@
             }
 
             function loadChatUsers() {
+                console.log('Loading chat users for item:', itemId);
                 fetch(`/Item/GetChatUsers?itemId=${itemId}`)
                     .then(res => res.json())
                     .then(users => {
+                        console.log('Chat users received:', users);
                         const select = document.getElementById('chatUserSelect');
                         const noUsersMsg = document.getElementById('noUsersMsg');
                         select.innerHTML = '<option value="">Select a user to chat with...</option>';
                         if (users.length === 0) {
+                            console.log('No users found');
                             noUsersMsg.style.display = '';
                             enableChatInput(false);
                         } else {
+                            console.log('Found users:', users);
                             noUsersMsg.style.display = 'none';
                             users.forEach(uid => {
                                 select.innerHTML += `<option value="${uid}">User #${uid}</option>`;
                             });
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error loading chat users:', error);
                     });
             }
 
             function loadConversationWithUser(userId) {
                 clearChatMessages();
-                if (connection) connection.stop();
+                console.log('Loading conversation with user:', userId);
+                
+                // For owners, use the new JoinOwnerChat method
+                if (isItemOwner === 'true') {
+                    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                        connection.invoke("JoinOwnerChat", itemId, currentUserId, userId);
+                        enableChatInput(true);
+                    } else {
+                        console.error('Connection not ready for owner chat');
+                        enableChatInput(false);
+                    }
+                } else {
+                    // For non-owners, use the regular JoinItemChat method
+                    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                        connection.invoke("JoinItemChat", itemId, currentUserId);
+                        enableChatInput(true);
+                    } else {
+                        // Fallback: create new connection if needed
+                        if (connection) connection.stop();
+                        connection = new signalR.HubConnectionBuilder()
+                            .withUrl("/chathub")
+                            .build();
+                        connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                            var msg = document.createElement('div');
+                            var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                            var displayName = sender;
+                            if (isCurrentUser) {
+                                msg.className = 'd-flex justify-content-end mb-2';
+                                msg.innerHTML = `
+                                    <div class=\"p-2 border rounded shadow-sm sender-message\">
+                                        <div class=\"small\">${message}</div>
+                                        <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                                    </div>
+                                `;
+                            } else {
+                                msg.className = 'd-flex justify-content-start mb-2';
+                                msg.innerHTML = `
+                                    <div class=\"p-2 border rounded shadow-sm receiver-message\">
+                                        <div class=\"small mb-1\">${displayName}</div>
+                                        <div>${message}</div>
+                                        <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                                    </div>
+                                `;
+                            }
+                            document.getElementById('chatMessages').appendChild(msg);
+                            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                        });
+                        connection.start().then(function () {
+                            connection.invoke("JoinItemChat", itemId, currentUserId);
+                            enableChatInput(true);
+                        });
+                    }
+                }
+            }
+
+            if (isItemOwner === 'true') {
+                // Owner: Initialize SignalR connection for receiving messages
                 connection = new signalR.HubConnectionBuilder()
                     .withUrl("/chathub")
                     .build();
+                
+                let lastMessage = { sender: null, message: null, sentAt: null };
                 connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                    // Deduplicate: Only append if not a duplicate of the last message
+                    if (
+                        lastMessage.sender === sender &&
+                        lastMessage.message === message &&
+                        lastMessage.sentAt === sentAt
+                    ) {
+                        return;
+                    }
+                    lastMessage = { sender, message, sentAt };
                     var msg = document.createElement('div');
                     var isCurrentUser = sender === currentFullName || sender === currentUsername;
                     var displayName = sender;
@@ -154,19 +228,19 @@
                     document.getElementById('chatMessages').appendChild(msg);
                     document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
                 });
+                
                 connection.start().then(function () {
                     connection.invoke("JoinItemChat", itemId, currentUserId);
                 });
-                enableChatInput(true);
-            }
-
-            if (isItemOwner === 'true') {
+                
                 loadChatUsers();
                 document.getElementById('chatUserSelect').addEventListener('change', function () {
                     selectedUserId = parseInt(this.value);
+                    console.log('Owner selected user:', selectedUserId);
                     if (selectedUserId) {
                         loadConversationWithUser(selectedUserId);
                     } else {
+                        console.log('No user selected, clearing chat');
                         clearChatMessages();
                         enableChatInput(false);
                     }
@@ -180,7 +254,17 @@
                 connection = new signalR.HubConnectionBuilder()
                     .withUrl("/chathub")
                     .build();
+                let lastMessage = { sender: null, message: null, sentAt: null };
                 connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                    // Deduplicate: Only append if not a duplicate of the last message
+                    if (
+                        lastMessage.sender === sender &&
+                        lastMessage.message === message &&
+                        lastMessage.sentAt === sentAt
+                    ) {
+                        return;
+                    }
+                    lastMessage = { sender, message, sentAt };
                     var msg = document.createElement('div');
                     var isCurrentUser = sender === currentFullName || sender === currentUsername;
                     var displayName = sender;
@@ -254,7 +338,7 @@
                             });
                     } else {
                         console.log('Sending as non-owner');
-                        connection.invoke("SendMessage", senderName, input.value, itemId, currentUserId)
+                        connection.invoke("SendMessage", senderName, input.value, itemId, currentUserId, null)
                             .catch(function (err) {
                                 console.error('Non-owner send error:', err);
                                 alert('Server error: ' + err.toString());

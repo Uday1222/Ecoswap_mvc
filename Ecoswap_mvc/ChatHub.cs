@@ -52,11 +52,33 @@ namespace Ecoswap_mvc
             }
         }
 
+        public async Task JoinOwnerChat(int itemId, int ownerId, int selectedUserId)
+        {
+            // Get the item to verify ownership
+            var item = await _itemRepository.GetItemByIdAsync(itemId);
+            if (item == null || !item.UserId.HasValue || item.UserId.Value != ownerId)
+                return;
+
+            // Add owner to both their own group and the selected user's group
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Item_{itemId}_User_{ownerId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Item_{itemId}_User_{selectedUserId}");
+            
+            // Load conversation between owner and selected user for this item
+            var messages = await _chatMessageRepository.GetConversationBetweenUsersAsync(itemId, ownerId, selectedUserId);
+            var messageList = messages.ToList();
+            
+            // Send previous messages to the owner
+            foreach (var message in messageList)
+            {
+                await Clients.Caller.SendAsync("ReceiveMessage", message.Sender, message.Message, message.SentAt);
+            }
+        }
+
         public async Task SendMessage(string senderName, string message, int itemId, int senderUserId, int? explicitReceiverId = null)
         {
             try
             {
-                Console.WriteLine($"SendMessage called: senderName={senderName}, message={message}, itemId={itemId}, senderUserId={senderUserId}, explicitReceiverId={explicitReceiverId}");
+                Console.WriteLine($"SendMessage called: senderName={senderName}, message={message}, itemId={itemId}, senderUserId={senderUserId}");
                 
                 if (senderUserId == 0 || itemId == 0)
                 {
@@ -76,6 +98,7 @@ namespace Ecoswap_mvc
                 Console.WriteLine($"Item owner ID: {itemOwnerId}");
                 
                 int receiverId;
+
                 if (explicitReceiverId.HasValue)
                 {
                     receiverId = explicitReceiverId.Value;
@@ -108,8 +131,8 @@ namespace Ecoswap_mvc
                 await _chatMessageRepository.CreateMessageAsync(chatMessage);
                 Console.WriteLine($"Message saved successfully with ID: {chatMessage.Id}");
                 
-                Console.WriteLine($"Sending to sender group: Item_{itemId}_User_{senderUserId}");
-                await Clients.Group($"Item_{itemId}_User_{senderUserId}").SendAsync("ReceiveMessage", senderName, message, chatMessage.SentAt);
+                // Send to sender only once
+                await Clients.Caller.SendAsync("ReceiveMessage", senderName, message, chatMessage.SentAt);
                 
                 if (senderUserId != receiverId)
                 {

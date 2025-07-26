@@ -100,8 +100,8 @@ namespace Ecoswap_mvc.Repository
         public async Task<List<int>> GetUserIdsWhoMessagedAboutItemAsync(int itemId, int ownerId)
         {
             return await _context.ChatMessages
-                .Where(m => m.ItemId == itemId && m.SenderId != ownerId)
-                .Select(m => m.SenderId)
+                .Where(m => m.ItemId == itemId && (m.SenderId != ownerId || m.ReceiverId != ownerId))
+                .Select(m => m.SenderId == ownerId ? m.ReceiverId : m.SenderId)
                 .Distinct()
                 .ToListAsync();
         }
