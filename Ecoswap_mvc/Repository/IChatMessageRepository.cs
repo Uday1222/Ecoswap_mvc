@@ -15,5 +15,7 @@ namespace Ecoswap_mvc.Repository
         Task<IEnumerable<ChatMessage>> GetRecentMessagesAsync(int count = 50);
         Task<IEnumerable<ChatMessage>> GetConversationBetweenUsersAsync(int itemId, int user1Id, int user2Id);
         Task<List<int>> GetUserIdsWhoMessagedAboutItemAsync(int itemId, int ownerId);
+        Task<IEnumerable<ChatMessage>> GetUnreadMessagesForUserAsync(int userId);
+        Task MarkMessagesAsReadAsync(int userId, int otherUserId, int itemId);
     }
 } 

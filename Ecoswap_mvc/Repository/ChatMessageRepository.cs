@@ -1,3 +1,4 @@
+using Ecoswap_mvc.Common;
 using Ecoswap_mvc.Data;
 using Ecoswap_mvc.Models;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +19,26 @@ namespace Ecoswap_mvc.Repository
 
         public async Task<IEnumerable<ChatMessage>> GetAllMessagesAsync()
         {
-            return await _context.ChatMessages
+            var messages = await _context.ChatMessages
                 .OrderByDescending(m => m.SentAt)
                 .ToListAsync();
+
+            foreach (var msg in messages)
+            {
+                msg.Message = CryptoHelper.Decrypt(msg.Message);
+            }
+
+            return messages;
         }
 
         public async Task<ChatMessage> GetMessageByIdAsync(int id)
         {
-            return await _context.ChatMessages.FindAsync(id);
+            var message = await _context.ChatMessages.FindAsync(id);
+            if (message != null)
+            {
+                message.Message = CryptoHelper.Decrypt(message.Message);
+            }
+            return message;
         }
 
         public async Task<ChatMessage> CreateMessageAsync(ChatMessage message)
@@ -33,10 +46,11 @@ namespace Ecoswap_mvc.Repository
             try
             {
                 Console.WriteLine($"ChatMessageRepository: Creating message - Sender: {message.Sender}, Message: {message.Message}, ItemId: {message.ItemId}, SenderId: {message.SenderId}, ReceiverId: {message.ReceiverId}");
-                
+
+                message.Message = CryptoHelper.Encrypt(message.Message);
                 _context.ChatMessages.Add(message);
                 await _context.SaveChangesAsync();
-                
+
                 Console.WriteLine($"ChatMessageRepository: Message created successfully with ID: {message.Id}");
                 return message;
             }
@@ -50,21 +64,34 @@ namespace Ecoswap_mvc.Repository
 
         public async Task<IEnumerable<ChatMessage>> GetMessagesByItemIdAsync(int? itemId)
         {
-            if (!itemId.HasValue)
-                return await GetAllMessagesAsync();
+            var messages = itemId.HasValue
+                ? await _context.ChatMessages
+                    .Where(m => m.ItemId == itemId)
+                    .OrderBy(m => m.SentAt)
+                    .ToListAsync()
+                : await GetAllMessagesAsync();
 
-            return await _context.ChatMessages
-                .Where(m => m.ItemId == itemId)
-                .OrderBy(m => m.SentAt)
-                .ToListAsync();
+            foreach (var msg in messages)
+            {
+                msg.Message = CryptoHelper.Decrypt(msg.Message);
+            }
+
+            return messages;
         }
 
         public async Task<IEnumerable<ChatMessage>> GetMessagesBySenderAsync(string sender)
         {
-            return await _context.ChatMessages
+            var messages = await _context.ChatMessages
                 .Where(m => m.Sender == sender)
                 .OrderByDescending(m => m.SentAt)
                 .ToListAsync();
+
+            foreach (var msg in messages)
+            {
+                msg.Message = CryptoHelper.Decrypt(msg.Message);
+            }
+
+            return messages;
         }
 
         public async Task<bool> DeleteMessageAsync(int id)
@@ -80,30 +107,72 @@ namespace Ecoswap_mvc.Repository
 
         public async Task<IEnumerable<ChatMessage>> GetRecentMessagesAsync(int count = 50)
         {
-            return await _context.ChatMessages
+            var messages = await _context.ChatMessages
                 .OrderByDescending(m => m.SentAt)
                 .Take(count)
                 .OrderBy(m => m.SentAt)
                 .ToListAsync();
+
+            foreach (var msg in messages)
+            {
+                msg.Message = CryptoHelper.Decrypt(msg.Message);
+            }
+
+            return messages;
         }
 
         public async Task<IEnumerable<ChatMessage>> GetConversationBetweenUsersAsync(int itemId, int user1Id, int user2Id)
         {
-            return await _context.ChatMessages
-                .Where(m => m.ItemId == itemId && 
-                           ((m.SenderId == user1Id && m.ReceiverId == user2Id) || 
-                            (m.SenderId == user2Id && m.ReceiverId == user1Id)))
+            var messages = await _context.ChatMessages
+                .Where(m => m.ItemId == itemId &&
+                            ((m.SenderId == user1Id && m.ReceiverId == user2Id) ||
+                             (m.SenderId == user2Id && m.ReceiverId == user1Id)))
                 .OrderBy(m => m.SentAt)
                 .ToListAsync();
+
+            foreach (var msg in messages)
+            {
+                msg.Message = CryptoHelper.Decrypt(msg.Message);
+            }
+
+            return messages;
         }
 
         public async Task<List<int>> GetUserIdsWhoMessagedAboutItemAsync(int itemId, int ownerId)
         {
+            // This method doesn't deal with message content
             return await _context.ChatMessages
                 .Where(m => m.ItemId == itemId && (m.SenderId != ownerId || m.ReceiverId != ownerId))
                 .Select(m => m.SenderId == ownerId ? m.ReceiverId : m.SenderId)
                 .Distinct()
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<ChatMessage>> GetUnreadMessagesForUserAsync(int userId)
+        {
+            var messages = await _context.ChatMessages
+                .Where(m => m.ReceiverId == userId && !m.IsRead)
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+
+            foreach (var msg in messages)
+            {
+                msg.Message = CryptoHelper.Decrypt(msg.Message);
+            }
+
+            return messages;
+        }
+
+        public async Task MarkMessagesAsReadAsync(int userId, int otherUserId, int itemId)
+        {
+            var messages = await _context.ChatMessages
+                .Where(m => m.ReceiverId == userId && m.SenderId == otherUserId && m.ItemId == itemId && !m.IsRead)
+                .ToListAsync();
+            foreach (var msg in messages)
+            {
+                msg.IsRead = true;
+            }
+            await _context.SaveChangesAsync();
+        }
     }
-} 
+}

@@ -135,9 +135,21 @@
                     });
             }
 
+            function markMessagesAsRead(otherUserId, itemId) {
+                fetch('/Item/MarkMessagesAsRead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otherUserId: otherUserId, itemId: itemId })
+                }).then(() => {
+                    // Optionally, update the notification badge immediately
+                    if (window.updateChatNotificationBadge) window.updateChatNotificationBadge();
+                });
+            }
+
             function loadConversationWithUser(userId) {
                 clearChatMessages();
                 console.log('Loading conversation with user:', userId);
+                markMessagesAsRead(userId, itemId);
 
                 // For owners, use the new JoinOwnerChat method
                 if (isItemOwner === true) {

@@ -97,5 +97,39 @@ namespace EcoSwap.Controllers
             var result = users.Select(u => new { userId = u.Id, username = u.FullName ?? u.Username }).ToList();
             return Json(result);
         }
+
+        [HttpGet]
+        public async Task<JsonResult> GetUnreadMessages()
+        {
+            var userIdString = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+                return Json(new List<object>());
+            var unread = await _chatMessageRepository.GetUnreadMessagesForUserAsync(userId);
+            var result = unread.Select(m => new {
+                m.Id,
+                m.SenderId,
+                m.ReceiverId,
+                m.Message,
+                m.SentAt,
+                m.ItemId
+            }).ToList();
+            return Json(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MarkMessagesAsRead([FromBody] MarkReadRequest req)
+        {
+            var userIdString = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+                return BadRequest();
+            await _chatMessageRepository.MarkMessagesAsReadAsync(userId, req.OtherUserId, req.ItemId);
+            return Ok();
+        }
+
+        public class MarkReadRequest
+        {
+            public int OtherUserId { get; set; }
+            public int ItemId { get; set; }
+        }
     }
 }
