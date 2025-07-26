@@ -1,0 +1,205 @@
+@model EcoSwap.Models.Item
+@{
+    ViewData["Title"] = Model.Title;
+    var currentUserId = Context.Session.GetString("UserId");
+    var currentUsername = Context.Session.GetString("Username");
+    var currentFullName = Context.Session.GetString("FullName");
+    var isLoggedIn = !string.IsNullOrEmpty(currentUserId);
+    var isItemOwner = isLoggedIn && Model.UserId.HasValue && Model.UserId.Value.ToString() == currentUserId;
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="row mb-2">
+                <div class="col-auto">
+                    <a class="btn btn-outline-secondary" onclick="window.history.back()"><i class="bi bi-arrow-left"></i> Back</a>
+                </div>
+            </div>
+            <div class="card shadow-sm" style="height: 440px;">
+                <div class="row g-0 h-100">
+                    <div class="col-md-5">
+                        <img src="@Model.ImagePath" class="img-fluid rounded-start w-100" alt="@Model.Title" style="object-fit:cover; height:400px; width:100%;">
+                    </div>
+                    <div class="col-md-7 h-100">
+                        <div class="card-body d-flex flex-column h-100" style="height:400px;">
+                            <div class="flex-grow-0">
+                                <h3 class="card-title mb-2">@Model.Title</h3>
+                                @if (Model.IsGiveaway)
+                                {
+                                    <span class="badge bg-success mb-2">Free Giveaway</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary mb-2">₹@Model.Price</span>
+                                }
+                                <p class="card-text">@Model.Description</p>
+                                <p class="text-muted small mb-2">Posted on @Model.DatePosted.ToString("dd MMM yyyy HH:mm")</p>
+                            </div>
+                            <hr>
+                            <div class="flex-grow-1 d-flex flex-column justify-content-end" style="min-height:0;">
+                                @if (isLoggedIn && !isItemOwner)
+                                {
+                                    <h5>Chat with Owner</h5>
+                                    <div id="chatMessages" class="flex-grow-1 border rounded p-2 mb-2" style="height:140px; max-height:140px; overflow-y:auto; background-color:inherit;"></div>
+                                    <div class="d-flex gap-2">
+                                        <input type="text" class="form-control" id="chatInput" placeholder="Type your message..." />
+                                        <button class="btn btn-success" onclick="sendDetailsChat()">Send</button>
+                                    </div>
+                                }
+                                else if (isItemOwner)
+                                {
+                                    <h5>Chat with Interested Users</h5>
+                                    <div id="chatMessages" class="flex-grow-1 border rounded p-2 mb-2" style="height:140px; max-height:140px; overflow-y:auto; background-color:inherit;"></div>
+                                    <div class="d-flex gap-2">
+                                        <input type="text" class="form-control" id="chatInput" placeholder="Type your message..." />
+                                        <button class="btn btn-success" onclick="sendDetailsChat()">Send</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center">
+                                        <h5>Interested in this item?</h5>
+                                        <p class="text-muted">Please <a asp-controller="Account" asp-action="Login">login</a> to chat with the owner.</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoggedIn)
+{
+    @section Scripts {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+        <script>
+            const currentUserId = @currentUserId;
+            const currentUsername = '@currentUsername';
+            const currentFullName = '@currentFullName';
+            const itemId = @Model.Id;
+            const isItemOwner = @isItemOwner.ToString().ToLower();
+            
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chathub")
+                .build();
+
+            connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                var msg = document.createElement('div');
+                var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                var displayName = sender;
+                
+                if (isCurrentUser) {
+                    // Sender message (right side)
+                    msg.className = 'd-flex justify-content-end mb-2';
+                    msg.innerHTML = `
+                        <div class=\"p-2 border rounded shadow-sm sender-message\">
+                            <div class=\"small\">${message}</div>
+                            <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                        </div>
+                    `;
+                } else {
+                    // Receiver message (left side)
+                    msg.className = 'd-flex justify-content-start mb-2';
+                    msg.innerHTML = `
+                        <div class=\"p-2 border rounded shadow-sm receiver-message\">
+                            <div class=\"small mb-1\">${displayName}</div>
+                            <div>${message}</div>
+                            <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                        </div>
+                    `;
+                }
+                document.getElementById('chatMessages').appendChild(msg);
+                document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+            });
+
+            connection.start().then(function () {
+                // Join the specific item's chat room
+                connection.invoke("JoinItemChat", itemId, currentUserId);
+            }).catch(function (err) {
+                return console.error(err.toString());
+            });
+
+            document.querySelector('button[onclick="sendDetailsChat()"]')?.addEventListener('click', function (event) {
+                sendDetailsChat();
+            });
+
+            function sendDetailsChat() {
+                var input = document.getElementById('chatInput');
+                if (input.value.trim() !== '') {
+                    var senderName = currentFullName || currentUsername;
+                    connection.invoke("SendMessage", senderName, input.value, itemId, currentUserId).catch(function (err) {
+                        return console.error(err.toString());
+                    });
+                    input.value = '';
+                }
+            }
+
+            // Handle Enter key in chat input
+            document.getElementById('chatInput')?.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendDetailsChat();
+                }
+            });
+        </script>
+    }
+}
+
+<style>
+    /* Chat message theme-based styling */
+    .sender-message {
+        background: var(--accent, #e8f5e9);
+        color: var(--text-color, #222);
+        max-width: 70%;
+    }
+    .receiver-message {
+        background: var(--card-bg, #fff);
+        color: var(--text-color, #222);
+        max-width: 70%;
+    }
+    body.dark-theme .sender-message {
+        background: var(--accent, #23272f);
+        color: var(--text-color, #e0e0e0);
+    }
+    body.dark-theme .receiver-message {
+        background: var(--card-bg, #2c313a);
+        color: var(--text-color, #e0e0e0);
+    }
+    /* Footer compact styling */
+    footer.footer {
+        padding: 0.5rem 0;
+        font-size: 0.95rem;
+        background: var(--card-bg, #fff);
+        color: var(--text-color, #222);
+        border-top: 1px solid #e0e0e0;
+        position: relative;
+        bottom: 0;
+        width: 100%;
+    }
+    body.dark-theme footer.footer {
+        background: var(--card-bg, #2c313a);
+        color: var(--text-color, #e0e0e0);
+        border-top: 1px solid #444;
+    }
+    html, body {
+        height: 100%;
+    }
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+    main[role="main"] {
+        flex: 1 0 auto;
+    }
+    footer.footer {
+        flex-shrink: 0;
+    }
+    /* Remove back button absolute positioning */
+    .back-btn {
+        position: static !important;
+    }
+</style> 

@@ -1,0 +1,186 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+:root {
+    --primary-bg: #f1f8e9;
+    --secondary-bg: #e8f5e9;
+    --card-bg: #fff;
+    --text-color: #222;
+    --accent: #26a269;
+}
+
+body.dark-theme {
+    --primary-bg: #23272f;
+    --secondary-bg: #1a1d23;
+    --card-bg: #2c313a;
+    --text-color: #e0e0e0;
+    --accent: #26a269;
+}
+
+body {
+    background: var(--primary-bg);
+    color: var(--text-color);
+    margin-bottom: 60px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.landing-hero {
+    background: linear-gradient(135deg, var(--secondary-bg) 0%, var(--primary-bg) 100%);
+    min-height: 60vh;
+    color: var(--text-color);
+    border-radius: 2rem;
+    box-shadow: 0 8px 32px 0 rgba(60, 60, 60, 0.10);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+    background: linear-gradient(120deg, var(--secondary-bg) 60%, rgba(38,162,105,0.08) 100%);
+}
+
+.card {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border-radius: 1rem;
+    transition: background 0.3s, color 0.3s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px 0 rgba(60, 60, 60, 0.08);
+    border: none;
+}
+
+    .card:hover {
+        box-shadow: 0 8px 32px 0 rgba(38,162,105,0.15);
+        transform: translateY(-4px) scale(1.03);
+        transition: box-shadow 0.3s, transform 0.3s;
+    }
+
+.card-title {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.btn-success {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px 0 rgba(38,162,105,0.10);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+    .btn-success:hover, .btn-success:focus {
+        background-color: #218c5a;
+        border-color: #218c5a;
+        box-shadow: 0 4px 16px 0 rgba(38,162,105,0.18);
+        transform: translateY(-2px) scale(1.04);
+    }
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--accent);
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+.landing-hero img {
+    filter: drop-shadow(0 2px 8px rgba(38,162,105,0.10));
+    background: rgba(255,255,255,0.7);
+    border-radius: 50%;
+    padding: 0.5rem;
+}
+
+.landing-hero h1, .landing-hero h2 {
+    text-shadow: 0 2px 8px rgba(38,162,105,0.08);
+}
+
+.landing-hero h2 {
+    color: var(--accent);
+    opacity: 0.85;
+}
+
+@media (max-width: 767px) {
+    .landing-hero {
+        min-height: 40vh;
+        padding: 2rem 1rem;
+    }
+
+    .card {
+        margin-bottom: 1.5rem;
+    }
+}
+
+body.dark-theme .modal-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid #333;
+}
+
+body.dark-theme .modal-header,
+body.dark-theme .modal-body,
+body.dark-theme .modal-footer {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+body.dark-theme .modal-title {
+    color: var(--accent);
+}
+
+body.dark-theme .btn-close {
+    filter: invert(1);
+}
+
+body.dark-theme .form-control,
+body.dark-theme .form-select,
+body.dark-theme .input-group-text {
+    background: #23272f;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+body.dark-theme .form-label {
+    color: #e0e0e0;
+}
+
+body.dark-theme .form-control:focus,
+body.dark-theme .form-select:focus {
+    background: #23272f;
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem rgba(38,162,105,0.15);
+}
+
+body.dark-theme .form-check-input {
+    background-color: #23272f;
+    border-color: #444;
+}
+
+    body.dark-theme .form-check-input:checked {
+        background-color: var(--accent);
+        border-color: var(--accent);
+    }
+
+/* Smooth fade-in for main content */
+main[role="main"] {
+    opacity: 0;
+    animation: fadeInMain 0.6s ease 0s 1 forwards;
+}
+
+@keyframes fadeInMain {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

@@ -1,0 +1,224 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="landing-hero d-flex flex-column justify-content-center align-items-center text-center py-5">
+    <img src="https://img.icons8.com/ios-filled/100/26a269/recycle-sign.png" alt="EcoSwap Logo" class="mb-4" style="width: 100px; height: 100px;"/>
+    <h1 class="display-3 fw-bold mb-3">Give Items a Second Life</h1>
+    <h2 class="h4 fw-normal mb-3 text-secondary" style="font-style: italic;">What may be trash to you could be a treasure to someone else.</h2>
+    <p class="lead mb-4">EcoSwap helps you recycle, reuse, and share items you no longer need. List your unused items for sale or for free, and let others give them a new home!</p>
+    <div class="d-flex flex-wrap justify-content-center gap-3">
+        <a href="/Item/Create" class="btn btn-success btn-lg px-4 shadow">Post an Item</a>
+        <a href="/Item/Index" class="btn btn-outline-success btn-lg px-4 shadow">Browse Items</a>
+    </div>
+</div>
+
+<hr class="my-5" />
+
+<div class="container my-5">
+    <h3 class="mb-4 text-center fw-bold">How It Works</h3>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <img src="https://img.icons8.com/ios-filled/50/26a269/box.png" alt="List Items" class="mb-3"/>
+                    <h5 class="card-title">List Your Items</h5>
+                    <p class="card-text">Add items you no longer use. Set a price or give them away for free.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <img src="https://img.icons8.com/ios-filled/50/26a269/search--v1.png" alt="Browse" class="mb-3"/>
+                    <h5 class="card-title">Browse & Discover</h5>
+                    <p class="card-text">Find great deals or free treasures from your local community.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <img src="https://img.icons8.com/ios-filled/50/26a269/handshake.png" alt="Connect" class="mb-3"/>
+                    <h5 class="card-title">Connect & Exchange</h5>
+                    <p class="card-text">Contact item owners, arrange pickup, and help reduce waste together.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr class="my-5" />
+
+<!-- Example Items Section -->
+@* <div class="container my-5">
+    <h3 class="mb-4 text-center fw-bold">Featured Example Items</h3>
+    <p class="text-center text-muted mb-4">See how you can list your own items for free or for sale. Click an item to view details and chat.</p>
+    <div class="row justify-content-center g-4">
+        <!-- Free Item -->
+        <div class="col-md-5">
+            <div class="card item-card h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#itemModal1" style="cursor:pointer;">
+                <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80" class="card-img-top" alt="Old Smartphone for Giveaway">
+                <div class="card-body">
+                    <h5 class="card-title">Old Smartphone</h5>
+                    <span class="badge bg-success mb-2">Free Giveaway</span>
+                    <p class="card-text">A working Android phone, perfect for basic use or parts. Pickup only.</p>
+                    <button class="btn btn-outline-success w-100 mt-2" data-bs-toggle="modal" data-bs-target="#itemModal1">View & Chat</button>
+                </div>
+            </div>
+        </div>
+        <!-- Paid Item -->
+        <div class="col-md-5">
+            <div class="card item-card h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#itemModal2" style="cursor:pointer;">
+                <img src="https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" class="card-img-top" alt="Bluetooth Speaker for Sale">
+                <div class="card-body">
+                    <h5 class="card-title">Bluetooth Speaker</h5>
+                    <span class="badge bg-primary mb-2">₹500</span>
+                    <p class="card-text">Portable speaker in great condition. Good sound, long battery life.</p>
+                    <button class="btn btn-outline-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#itemModal2">View & Chat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr class="my-5" /> *@
+
+<!-- Item 1 Modal -->
+<div class="modal fade" id="itemModal1" tabindex="-1" aria-labelledby="itemModal1Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="itemModal1Label">Old Smartphone (Free Giveaway)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80" class="img-fluid rounded mb-3" alt="Old Smartphone">
+        <p>Working Android phone, some scratches but fully functional. Great for kids or as a backup device. <br><strong>Pickup only, location: Bangalore</strong></p>
+        <hr>
+        <h6>Chat with Owner</h6>
+        <form onsubmit="event.preventDefault(); sendMessage('chat1');">
+          <div class="mb-2">
+            <input type="text" class="form-control" id="chat1Input" placeholder="Type your message..." required>
+          </div>
+          <button type="submit" class="btn btn-success">Send</button>
+        </form>
+        <div id="chat1Messages" class="mt-3" style="min-height:40px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Item 2 Modal -->
+<div class="modal fade" id="itemModal2" tabindex="-1" aria-labelledby="itemModal2Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="itemModal2Label">Bluetooth Speaker (₹500)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <img src="https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" class="img-fluid rounded mb-3" alt="Bluetooth Speaker">
+        <p>Portable Bluetooth speaker, excellent sound and battery. <br><strong>Available for delivery or pickup, location: Mumbai</strong></p>
+        <hr>
+        <h6>Chat with Owner</h6>
+        <form onsubmit="event.preventDefault(); sendMessage('chat2');">
+          <div class="mb-2">
+            <input type="text" class="form-control" id="chat2Input" placeholder="Type your message..." required>
+          </div>
+          <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+        <div id="chat2Messages" class="mt-3" style="min-height:40px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Simple chat simulation (local, not real-time)
+function sendMessage(chatId) {
+    var input = document.getElementById(chatId + 'Input');
+    var messages = document.getElementById(chatId + 'Messages');
+    if (input.value.trim() !== '') {
+        var msg = document.createElement('div');
+        msg.className = 'alert alert-secondary py-1 px-2 mb-1';
+        msg.innerText = input.value;
+        messages.appendChild(msg);
+        input.value = '';
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+</script>
+
+@{
+    // Render latest items if available
+    var latestItems = typeof(EcoSwap.Controllers.ItemController)
+        .GetField("Items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+        ?.GetValue(null) as List<EcoSwap.Models.Item>;
+    latestItems = latestItems?.OrderByDescending(i => i.DatePosted).Take(3).ToList();
+}
+@if (latestItems != null && latestItems.Any())
+{
+    <div class="container my-5">
+        <h3 class="mb-4 text-center fw-bold">Latest Community Items</h3>
+        <p class="text-center text-muted mb-4">Recently posted by users. Want to see more? <a href="/Item/Index">Browse all items</a> or <a href="/Item/Create">post your own</a>!</p>
+        <div class="row justify-content-center g-4">
+            @for (int i = 0; i < latestItems.Count; i++)
+            {
+                var item = latestItems[i];
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="@item.ImagePath" class="card-img-top" alt="@item.Title" style="object-fit:cover; height:220px;">
+                        <div class="card-body">
+                            <h5 class="card-title">@item.Title</h5>
+                            @if (item.IsGiveaway)
+                            {
+                                <span class="badge bg-success mb-2">Free Giveaway</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary mb-2">₹@item.Price</span>
+                            }
+                            <p class="card-text">@item.Description</p>
+                            <p class="text-muted small mb-0">Posted on @item.DatePosted.ToString("dd MMM yyyy HH:mm")</p>
+                            <a class="btn btn-outline-success w-100 mt-2" href="/Item/Details/@item.Id">View & Chat</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="text-center mt-4">
+            <a href="/Item/Index" class="btn btn-outline-success">View All Items</a>
+        </div>
+    </div>
+}
+
+<script>
+// Placeholder for WebSocket chat logic
+let wsConnections = {};
+function sendWsMessage(modalId) {
+    const input = document.getElementById('chatInput_' + modalId);
+    const messages = document.getElementById('chatMessages_' + modalId);
+    if (!wsConnections[modalId]) {
+        // Replace with your WebSocket endpoint
+        wsConnections[modalId] = new WebSocket('ws://localhost:5000/ws/chat/' + modalId);
+        wsConnections[modalId].onmessage = function(event) {
+            const msg = document.createElement('div');
+            msg.className = 'alert alert-secondary py-1 px-2 mb-1';
+            msg.innerText = event.data;
+            messages.appendChild(msg);
+            messages.scrollTop = messages.scrollHeight;
+        };
+    }
+    if (input.value.trim() !== '') {
+        wsConnections[modalId].send(input.value);
+        // Optionally show the message immediately
+        const msg = document.createElement('div');
+        msg.className = 'alert alert-success py-1 px-2 mb-1';
+        msg.innerText = input.value;
+        messages.appendChild(msg);
+        input.value = '';
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+</script>
