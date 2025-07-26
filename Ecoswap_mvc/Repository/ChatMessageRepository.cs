@@ -30,9 +30,22 @@ namespace Ecoswap_mvc.Repository
 
         public async Task<ChatMessage> CreateMessageAsync(ChatMessage message)
         {
-            _context.ChatMessages.Add(message);
-            await _context.SaveChangesAsync();
-            return message;
+            try
+            {
+                Console.WriteLine($"ChatMessageRepository: Creating message - Sender: {message.Sender}, Message: {message.Message}, ItemId: {message.ItemId}, SenderId: {message.SenderId}, ReceiverId: {message.ReceiverId}");
+                
+                _context.ChatMessages.Add(message);
+                await _context.SaveChangesAsync();
+                
+                Console.WriteLine($"ChatMessageRepository: Message created successfully with ID: {message.Id}");
+                return message;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ChatMessageRepository: Error creating message: {ex.Message}");
+                Console.WriteLine($"ChatMessageRepository: Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ChatMessage>> GetMessagesByItemIdAsync(int? itemId)
@@ -71,6 +84,25 @@ namespace Ecoswap_mvc.Repository
                 .OrderByDescending(m => m.SentAt)
                 .Take(count)
                 .OrderBy(m => m.SentAt)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ChatMessage>> GetConversationBetweenUsersAsync(int itemId, int user1Id, int user2Id)
+        {
+            return await _context.ChatMessages
+                .Where(m => m.ItemId == itemId && 
+                           ((m.SenderId == user1Id && m.ReceiverId == user2Id) || 
+                            (m.SenderId == user2Id && m.ReceiverId == user1Id)))
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<int>> GetUserIdsWhoMessagedAboutItemAsync(int itemId, int ownerId)
+        {
+            return await _context.ChatMessages
+                .Where(m => m.ItemId == itemId && m.SenderId != ownerId)
+                .Select(m => m.SenderId)
+                .Distinct()
                 .ToListAsync();
         }
     }

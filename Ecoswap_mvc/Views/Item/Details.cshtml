@@ -6,6 +6,7 @@
     var currentFullName = Context.Session.GetString("FullName");
     var isLoggedIn = !string.IsNullOrEmpty(currentUserId);
     var isItemOwner = isLoggedIn && Model.UserId.HasValue && Model.UserId.Value.ToString() == currentUserId;
+    var itemOwnerId = Model.UserId ?? 0;
 }
 
 <div class="container my-5">
@@ -44,16 +45,22 @@
                                     <div id="chatMessages" class="flex-grow-1 border rounded p-2 mb-2" style="height:140px; max-height:140px; overflow-y:auto; background-color:inherit;"></div>
                                     <div class="d-flex gap-2">
                                         <input type="text" class="form-control" id="chatInput" placeholder="Type your message..." />
-                                        <button class="btn btn-success" onclick="sendDetailsChat()">Send</button>
+                                        <button class="btn btn-success" id="sendBtn" onclick="sendDetailsChat()">Send</button>
                                     </div>
                                 }
                                 else if (isItemOwner)
                                 {
                                     <h5>Chat with Interested Users</h5>
+                                    <div class="mb-2">
+                                        <select id="chatUserSelect" class="form-select">
+                                            <option value="">Select a user to chat with...</option>
+                                        </select>
+                                        <div id="noUsersMsg" class="text-muted small mt-2" style="display:none;">No users have messaged about this item yet.</div>
+                                    </div>
                                     <div id="chatMessages" class="flex-grow-1 border rounded p-2 mb-2" style="height:140px; max-height:140px; overflow-y:auto; background-color:inherit;"></div>
                                     <div class="d-flex gap-2">
-                                        <input type="text" class="form-control" id="chatInput" placeholder="Type your message..." />
-                                        <button class="btn btn-success" onclick="sendDetailsChat()">Send</button>
+                                        <input type="text" class="form-control" id="chatInput" placeholder="Type your message..." disabled />
+                                        <button class="btn btn-success" id="sendBtn" disabled>Send</button>
                                     </div>
                                 }
                                 else
@@ -77,68 +84,187 @@
     @section Scripts {
         <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
         <script>
-            const currentUserId = @currentUserId;
+            const currentUserId = parseInt('@currentUserId');
             const currentUsername = '@currentUsername';
             const currentFullName = '@currentFullName';
-            const itemId = @Model.Id;
+            const itemId = parseInt('@Model.Id');
+            const itemOwnerId = parseInt('@itemOwnerId');
             const isItemOwner = @isItemOwner.ToString().ToLower();
-            
-            const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/chathub")
-                .build();
+            let selectedUserId = null;
+            let connection = null;
 
-            connection.on("ReceiveMessage", function (sender, message, sentAt) {
-                var msg = document.createElement('div');
-                var isCurrentUser = sender === currentFullName || sender === currentUsername;
-                var displayName = sender;
-                
-                if (isCurrentUser) {
-                    // Sender message (right side)
-                    msg.className = 'd-flex justify-content-end mb-2';
-                    msg.innerHTML = `
-                        <div class=\"p-2 border rounded shadow-sm sender-message\">
-                            <div class=\"small\">${message}</div>
-                            <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
-                        </div>
-                    `;
-                } else {
-                    // Receiver message (left side)
-                    msg.className = 'd-flex justify-content-start mb-2';
-                    msg.innerHTML = `
-                        <div class=\"p-2 border rounded shadow-sm receiver-message\">
-                            <div class=\"small mb-1\">${displayName}</div>
-                            <div>${message}</div>
-                            <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
-                        </div>
-                    `;
+            function clearChatMessages() {
+                document.getElementById('chatMessages').innerHTML = '';
+            }
+
+             function enableChatInput(enable) {
+                var chatInput = document.getElementById('chatInput');
+                var sendBtn = document.getElementById('sendBtn');
+                if (chatInput) chatInput.disabled = !enable;
+                if (sendBtn) sendBtn.disabled = !enable;
+            }
+
+            function loadChatUsers() {
+                fetch(`/Item/GetChatUsers?itemId=${itemId}`)
+                    .then(res => res.json())
+                    .then(users => {
+                        const select = document.getElementById('chatUserSelect');
+                        const noUsersMsg = document.getElementById('noUsersMsg');
+                        select.innerHTML = '<option value="">Select a user to chat with...</option>';
+                        if (users.length === 0) {
+                            noUsersMsg.style.display = '';
+                            enableChatInput(false);
+                        } else {
+                            noUsersMsg.style.display = 'none';
+                            users.forEach(uid => {
+                                select.innerHTML += `<option value="${uid}">User #${uid}</option>`;
+                            });
+                        }
+                    });
+            }
+
+            function loadConversationWithUser(userId) {
+                clearChatMessages();
+                if (connection) connection.stop();
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chathub")
+                    .build();
+                connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                    var msg = document.createElement('div');
+                    var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                    var displayName = sender;
+                    if (isCurrentUser) {
+                        msg.className = 'd-flex justify-content-end mb-2';
+                        msg.innerHTML = `
+                            <div class=\"p-2 border rounded shadow-sm sender-message\">
+                                <div class=\"small\">${message}</div>
+                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    } else {
+                        msg.className = 'd-flex justify-content-start mb-2';
+                        msg.innerHTML = `
+                            <div class=\"p-2 border rounded shadow-sm receiver-message\">
+                                <div class=\"small mb-1\">${displayName}</div>
+                                <div>${message}</div>
+                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    }
+                    document.getElementById('chatMessages').appendChild(msg);
+                    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                });
+                connection.start().then(function () {
+                    connection.invoke("JoinItemChat", itemId, currentUserId);
+                });
+                enableChatInput(true);
+            }
+
+            if (isItemOwner === 'true') {
+                loadChatUsers();
+                document.getElementById('chatUserSelect').addEventListener('change', function () {
+                    selectedUserId = parseInt(this.value);
+                    if (selectedUserId) {
+                        loadConversationWithUser(selectedUserId);
+                    } else {
+                        clearChatMessages();
+                        enableChatInput(false);
+                    }
+                });
+                document.getElementById('sendBtn').addEventListener('click', function () {
+                    sendDetailsChat();
+                });
+            } else {
+                // Non-owner: always enable chat input and start SignalR connection
+                enableChatInput(false); // Disable input until connection is ready
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chathub")
+                    .build();
+                connection.on("ReceiveMessage", function (sender, message, sentAt) {
+                    var msg = document.createElement('div');
+                    var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                    var displayName = sender;
+                    if (isCurrentUser) {
+                        msg.className = 'd-flex justify-content-end mb-2';
+                        msg.innerHTML = `
+                            <div class=\"p-2 border rounded shadow-sm sender-message\">
+                                <div class=\"small\">${message}</div>
+                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    } else {
+                        msg.className = 'd-flex justify-content-start mb-2';
+                        msg.innerHTML = `
+                            <div class=\"p-2 border rounded shadow-sm receiver-message\">
+                                <div class=\"small mb-1\">${displayName}</div>
+                                <div>${message}</div>
+                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    }
+                    document.getElementById('chatMessages').appendChild(msg);
+                    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                });
+                connection.start().then(function () {
+                    connection.invoke("JoinItemChat", itemId, currentUserId);
+                    enableChatInput(true); // Enable input after connection is ready
+                });
+                // For non-owners, add event listener to the send button
+                var sendBtn = document.getElementById('sendBtn');
+                if (sendBtn) {
+                    sendBtn.addEventListener('click', function () {
+                        sendDetailsChat();
+                    });
                 }
-                document.getElementById('chatMessages').appendChild(msg);
-                document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-            });
-
-            connection.start().then(function () {
-                // Join the specific item's chat room
-                connection.invoke("JoinItemChat", itemId, currentUserId);
-            }).catch(function (err) {
-                return console.error(err.toString());
-            });
-
-            document.querySelector('button[onclick="sendDetailsChat()"]')?.addEventListener('click', function (event) {
-                sendDetailsChat();
-            });
+            }
 
             function sendDetailsChat() {
+                console.log('sendDetailsChat called');
+                console.log('connection:', connection);
+                console.log('currentUserId:', currentUserId);
+                console.log('itemId:', itemId);
+                console.log('isItemOwner:', isItemOwner);
+                
+                if (!connection) {
+                    alert('Chat connection not ready. Please wait a moment and try again.');
+                    return;
+                }
                 var input = document.getElementById('chatInput');
                 if (input.value.trim() !== '') {
                     var senderName = currentFullName || currentUsername;
-                    connection.invoke("SendMessage", senderName, input.value, itemId, currentUserId).catch(function (err) {
-                        return console.error(err.toString());
-                    });
+                    console.log('senderName:', senderName);
+                    console.log('message:', input.value);
+                    
+                    // Defensive: ensure IDs are valid integers
+                    if (isNaN(currentUserId) || isNaN(itemId) || currentUserId === 0 || itemId === 0) {
+                        alert('User or item information is missing. Please refresh the page and try again.');
+                        return;
+                    }
+                    if (isItemOwner === 'true') {
+                        if (!selectedUserId || isNaN(selectedUserId) || selectedUserId === 0) {
+                            alert('Please select a user to chat with.');
+                            return;
+                        }
+                        console.log('Sending as owner to user:', selectedUserId);
+                        connection.invoke("SendMessage", senderName, input.value, itemId, currentUserId, selectedUserId)
+                            .catch(function (err) {
+                                console.error('Owner send error:', err);
+                                alert('Server error: ' + err.toString());
+                                return console.error(err.toString());
+                            });
+                    } else {
+                        console.log('Sending as non-owner');
+                        connection.invoke("SendMessage", senderName, input.value, itemId, currentUserId)
+                            .catch(function (err) {
+                                console.error('Non-owner send error:', err);
+                                alert('Server error: ' + err.toString());
+                                return console.error(err.toString());
+                            });
+                    }
                     input.value = '';
                 }
             }
 
-            // Handle Enter key in chat input
             document.getElementById('chatInput')?.addEventListener('keypress', function(event) {
                 if (event.key === 'Enter') {
                     sendDetailsChat();

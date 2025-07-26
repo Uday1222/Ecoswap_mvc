@@ -83,5 +83,16 @@ namespace EcoSwap.Controllers
                 return NotFound();
             return View(item);
         }
+
+        [HttpGet]
+        public async Task<JsonResult> GetChatUsers(int itemId)
+        {
+            var item = await _itemRepository.GetItemByIdAsync(itemId);
+            if (item == null || !item.UserId.HasValue)
+                return Json(new List<object>());
+            var userIds = await _chatMessageRepository.GetUserIdsWhoMessagedAboutItemAsync(itemId, item.UserId.Value);
+            // For demo, just return user IDs. In a real app, you would join with the user table to get names.
+            return Json(userIds);
+        }
     }
 }
