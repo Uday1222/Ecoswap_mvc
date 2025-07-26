@@ -138,15 +138,23 @@
             function loadConversationWithUser(userId) {
                 clearChatMessages();
                 console.log('Loading conversation with user:', userId);
-                
+
                 // For owners, use the new JoinOwnerChat method
                 if (isItemOwner === true) {
                     if (connection && connection.state === signalR.HubConnectionState.Connected) {
                         // Remove previous handler to avoid duplicates and cross-user message leakage
                         connection.off("ReceiveMessage");
                         connection.on("ReceiveMessage", function (sender, message, sentAt) {
-                            var msg = document.createElement('div');
+                            // Only show messages if they are between the owner and the selected user
+                            // We assume sender is a name, so we need to check sender/receiver IDs
+                            // But since only the backend knows the IDs, we need to filter by sender name
+                            // So, add a check: only show if sender is current user or selected user
                             var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                            var isSelectedUser = sender === document.getElementById('chatUserSelect').selectedOptions[0]?.text;
+                            if (!(isCurrentUser || isSelectedUser)) {
+                                return; // Ignore messages not from the selected user or owner
+                            }
+                            var msg = document.createElement('div');
                             var displayName = sender;
                             if (isCurrentUser) {
                                 msg.className = 'd-flex justify-content-end mb-2';
@@ -187,24 +195,28 @@
                             .withUrl("/chathub")
                             .build();
                         connection.on("ReceiveMessage", function (sender, message, sentAt) {
-                            var msg = document.createElement('div');
+                            // Only show messages if they are between the current user and the item owner
                             var isCurrentUser = sender === currentFullName || sender === currentUsername;
+                            if (!(isCurrentUser || isItemOwner)) {
+                                return; // Ignore messages not from the current user or owner
+                            }
+                            var msg = document.createElement('div');
                             var displayName = sender;
                             if (isCurrentUser) {
                                 msg.className = 'd-flex justify-content-end mb-2';
                                 msg.innerHTML = `
-                                    <div class=\"p-2 border rounded shadow-sm sender-message\">
-                                        <div class=\"small\">${message}</div>
-                                        <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                                    <div class="p-2 border rounded shadow-sm sender-message">
+                                        <div class="small">${message}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
                                     </div>
                                 `;
                             } else {
                                 msg.className = 'd-flex justify-content-start mb-2';
                                 msg.innerHTML = `
-                                    <div class=\"p-2 border rounded shadow-sm receiver-message\">
-                                        <div class=\"small mb-1\">${displayName}</div>
+                                    <div class="p-2 border rounded shadow-sm receiver-message">
+                                        <div class="small mb-1">${displayName}</div>
                                         <div>${message}</div>
-                                        <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
                                     </div>
                                 `;
                             }
@@ -224,7 +236,7 @@
                 connection = new signalR.HubConnectionBuilder()
                     .withUrl("/chathub")
                     .build();
-                
+
                 let lastMessage = { sender: null, message: null, sentAt: null };
                 connection.on("ReceiveMessage", function (sender, message, sentAt) {
                     // Deduplicate: Only append if not a duplicate of the last message
@@ -242,25 +254,25 @@
                     if (isCurrentUser) {
                         msg.className = 'd-flex justify-content-end mb-2';
                         msg.innerHTML = `
-                            <div class=\"p-2 border rounded shadow-sm sender-message\">
-                                <div class=\"small\">${message}</div>
-                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                            <div class="p-2 border rounded shadow-sm sender-message">
+                                <div class="small">${message}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
                             </div>
                         `;
                     } else {
                         msg.className = 'd-flex justify-content-start mb-2';
                         msg.innerHTML = `
-                            <div class=\"p-2 border rounded shadow-sm receiver-message\">
-                                <div class=\"small mb-1\">${displayName}</div>
+                            <div class="p-2 border rounded shadow-sm receiver-message">
+                                <div class="small mb-1">${displayName}</div>
                                 <div>${message}</div>
-                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
                             </div>
                         `;
                     }
                     document.getElementById('chatMessages').appendChild(msg);
                     document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
                 });
-                
+
                 connection.start().then(function () {
                     // Do not join any chat or set up ReceiveMessage handler globally
                 });
@@ -302,18 +314,18 @@
                     if (isCurrentUser) {
                         msg.className = 'd-flex justify-content-end mb-2';
                         msg.innerHTML = `
-                            <div class=\"p-2 border rounded shadow-sm sender-message\">
-                                <div class=\"small\">${message}</div>
-                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                            <div class="p-2 border rounded shadow-sm sender-message">
+                                <div class="small">${message}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
                             </div>
                         `;
                     } else {
                         msg.className = 'd-flex justify-content-start mb-2';
                         msg.innerHTML = `
-                            <div class=\"p-2 border rounded shadow-sm receiver-message\">
-                                <div class=\"small mb-1\">${displayName}</div>
+                            <div class="p-2 border rounded shadow-sm receiver-message">
+                                <div class="small mb-1">${displayName}</div>
                                 <div>${message}</div>
-                                <div class=\"text-muted\" style=\"font-size: 0.7rem;\">${new Date(sentAt).toLocaleTimeString()}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${new Date(sentAt).toLocaleTimeString()}</div>
                             </div>
                         `;
                     }
@@ -339,7 +351,7 @@
                 console.log('currentUserId:', currentUserId);
                 console.log('itemId:', itemId);
                 console.log('isItemOwner:', isItemOwner);
-                
+
                 if (!connection) {
                     alert('Chat connection not ready. Please wait a moment and try again.');
                     return;
@@ -349,7 +361,7 @@
                     var senderName = currentFullName || currentUsername;
                     console.log('senderName:', senderName);
                     console.log('message:', input.value);
-                    
+
                     // Defensive: ensure IDs are valid integers
                     if (isNaN(currentUserId) || isNaN(itemId) || currentUserId === 0 || itemId === 0) {
                         alert('User or item information is missing. Please refresh the page and try again.');
@@ -398,15 +410,18 @@
         color: var(--text-color, #222);
         max-width: 70%;
     }
+
     .receiver-message {
         background: var(--card-bg, #fff);
         color: var(--text-color, #222);
         max-width: 70%;
     }
+
     body.dark-theme .sender-message {
         background: var(--accent, #23272f);
         color: var(--text-color, #e0e0e0);
     }
+
     body.dark-theme .receiver-message {
         background: var(--card-bg, #2c313a);
         color: var(--text-color, #e0e0e0);
@@ -422,22 +437,27 @@
         bottom: 0;
         width: 100%;
     }
+
     body.dark-theme footer.footer {
         background: var(--card-bg, #2c313a);
         color: var(--text-color, #e0e0e0);
         border-top: 1px solid #444;
     }
+
     html, body {
         height: 100%;
     }
+
     body {
         display: flex;
         flex-direction: column;
         min-height: 100vh;
     }
+
     main[role="main"] {
         flex: 1 0 auto;
     }
+
     footer.footer {
         flex-shrink: 0;
     }

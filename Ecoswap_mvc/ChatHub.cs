@@ -32,15 +32,9 @@ namespace Ecoswap_mvc
 
             int itemOwnerId = item.UserId.Value;
             
-            // Add user to their personal group for this item
+            // Only add user to their own group for this item (not to the owner's group)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Item_{itemId}_User_{userId}");
-            
-            // If user is not the owner, also add them to the owner's group
-            if (userId != itemOwnerId)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"Item_{itemId}_User_{itemOwnerId}");
-            }
-            
+
             // Load conversation between these two users for this item
             var messages = await _chatMessageRepository.GetConversationBetweenUsersAsync(itemId, userId, itemOwnerId);
             var messageList = messages.ToList();
@@ -59,14 +53,13 @@ namespace Ecoswap_mvc
             if (item == null || !item.UserId.HasValue || item.UserId.Value != ownerId)
                 return;
 
-            // Add owner to both their own group and the selected user's group
+            // Only add owner to their own group (not to the selected user's group)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Item_{itemId}_User_{ownerId}");
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"Item_{itemId}_User_{selectedUserId}");
-            
+
             // Load conversation between owner and selected user for this item
             var messages = await _chatMessageRepository.GetConversationBetweenUsersAsync(itemId, ownerId, selectedUserId);
             var messageList = messages.ToList();
-            
+
             // Send previous messages to the owner
             foreach (var message in messageList)
             {
