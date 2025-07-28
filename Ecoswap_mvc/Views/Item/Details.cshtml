@@ -111,9 +111,12 @@
             function loadChatUsers() {
                 debugger;
                 console.log('Loading chat users for item:', itemId);
-                fetch(`/Item/GetChatUsers?itemId=${itemId}`)
-                    .then(res => res.json())
-                    .then(users => {
+                $.ajax({
+                    url: '@Url.Action("GetChatUsers", "Item")',
+                    type: 'GET',
+                    data: { itemId: itemId },
+                    dataType: 'json',
+                    success: function(users) {
                         console.log('Chat users received:', users);
                         const select = document.getElementById('chatUserSelect');
                         const noUsersMsg = document.getElementById('noUsersMsg');
@@ -129,20 +132,26 @@
                                 select.innerHTML += `<option value="${user.userId}">${user.username}</option>`;
                             });
                         }
-                    })
-                    .catch(error => {
+                    },
+                    error: function(xhr, status, error) {
                         console.error('Error loading chat users:', error);
-                    });
+                    }
+                });
             }
 
             function markMessagesAsRead(otherUserId, itemId) {
-                fetch('/Item/MarkMessagesAsRead', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ otherUserId: otherUserId, itemId: itemId })
-                }).then(() => {
-                    // Optionally, update the notification badge immediately
-                    if (window.updateChatNotificationBadge) window.updateChatNotificationBadge();
+                $.ajax({
+                    url: '@Url.Action("MarkMessagesAsRead", "Item")',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({ otherUserId: otherUserId, itemId: itemId }),
+                    success: function() {
+                        // Optionally, update the notification badge immediately
+                        if (window.updateChatNotificationBadge) window.updateChatNotificationBadge();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error marking messages as read:', error);
+                    }
                 });
             }
 

@@ -10,10 +10,12 @@ namespace Ecoswap_mvc.Controllers
     public class AccountController : Controller
     {
         private readonly IUserRepository _userRepository;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(IUserRepository userRepository)
+        public AccountController(IUserRepository userRepository, ILogger<AccountController> logger)
         {
             _userRepository = userRepository;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -25,26 +27,34 @@ namespace Ecoswap_mvc.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var isValid = await _userRepository.ValidateUserAsync(model.Username, model.Password);
-                if (isValid)
+                if (ModelState.IsValid)
                 {
-                    var user = await _userRepository.GetUserByUsernameAsync(model.Username);
-                    await _userRepository.UpdateLastLoginAsync(user.Id);
+                    var isValid = await _userRepository.ValidateUserAsync(model.Username, model.Password);
+                    if (isValid)
+                    {
+                        var user = await _userRepository.GetUserByUsernameAsync(model.Username);
+                        await _userRepository.UpdateLastLoginAsync(user.Id);
 
-                    // Store user info in session
-                    HttpContext.Session.SetString("UserId", user.Id.ToString());
-                    HttpContext.Session.SetString("Username", user.Username);
-                    HttpContext.Session.SetString("FullName", user.FullName ?? user.Username);
+                        // Store user info in session
+                        HttpContext.Session.SetString("UserId", user.Id.ToString());
+                        HttpContext.Session.SetString("Username", user.Username);
+                        HttpContext.Session.SetString("FullName", user.FullName ?? user.Username);
 
-                    return RedirectToAction("Index", "Home");
-                }
-                else
-                {
-                    ModelState.AddModelError("", "Invalid username or password");
+                        return RedirectToAction("Index", "Home");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", "Invalid username or password");
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error: Login. Message - {ex.Message}, StackTrace - {ex.StackTrace}, Source - {ex.Source}");
+            }
+
             return View(model);
         }
 
